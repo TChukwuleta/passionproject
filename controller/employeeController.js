@@ -26,63 +26,65 @@ const createToken = async (payload) => {
     })
 }
 
-// Create admin user(HR)
-const registerAdminUser = async (req, res) => {
+// Create employee user
+const registerEmployee = async (req, res) => {
     const { error } = registerSchema.validate(req.body)
     if(error){
         return res.status(400).send(error.details[0].message)
     }
-    const adminExist = await adminProfile.findOne({email: req.body.email})
-    if(adminExist){
+    const employeeExist = await employeeProfile.findOne({email: req.body.email})
+    if(employeeExist){
         return res.status(400).json({ message: "A user with that Email already exists" })
     }
     const salt = await bcrypt.genSalt(10)
     const hashPassword = await bcrypt.hash(req.body.password, salt)
-    await adminProfile.create({
+    const newEmployee = await employeeProfile.create({
         name: req.body.name,
         email: req.body.email,
         password: hashPassword,
         phone: req.body.phone,
         employeeId: Math.floor(Math.random() * 10000), // Auto Generates employee ID
-        employees: []
     })
 
-    return res.status(201).json({ message: "Account created successfully" })
+    adminProfile.employees.push(newEmployee)
+    await adminProfile.save()
+
+    return res.status(201).json({ message: "Employee account created successfully" })
 }
 
-// Login Admin user
-const loginAdminUser = async () => {
+// Login for employee
+const loginEmployee = async () => {
     const { error } = loginSchema.validate(req.body)
     if(error){
         return res.status(400).send(error.details[0].message)
     } 
-    const admin = await adminProfile.findOne({ email: req.body.email })
-    if(!admin){
+    const employee = await employeeProfile.findOne({ email: req.body.email })
+    if(!employee){
         return res.status(400).json({message: "Incorrect Email or password" })
     }
-    const validatePassword = await bcrypt.compare(req.body.password, admin.password)
+    const validatePassword = await bcrypt.compare(req.body.password, employee.password)
     if(!validatePassword){
         return res.status(400).json({ message: "Incorrect email or Password"})
     }
     const signature = await createToken({
-        _id: admin._id,
-        email: admin.email
+        _id: employee._id,
+        email: employee.email
     })
     return res.status(201).json({ signature: signature })
 }
 
 // Forgot Password
-const adminForgotPassword = async (req, res) => {
-    const adminUser = await adminProfile.findOne({ email: req.body.email })
-    if(adminUser){
+const employeeForgotPassword = async (req, res) => {
+    const employeeUser = await employeeProfile.findOne({ email: req.body.email })
+    if(employeeUser){
         const { newPassword, confirmPassword } = req.body
         if(newPassword != confirmPassword){
             return res.status(400).json({ message: "Password doesn't match" })
         }
         const salt = await bcrypt.genSalt(10)
         const hashPassword = await bcrypt.hash(newPassword, salt)
-        adminUser.password = hashPassword
-        await adminUser.save()
+        employeeUser.password = hashPassword
+        await employeeUser.save()
 
         return res.status(201).json({ message: "Your password has been updated successfully" })
     }
@@ -90,43 +92,24 @@ const adminForgotPassword = async (req, res) => {
 }
 
 // Update admin user
-const updateAdminUser = async (req, res) => {
-    const adminUserId = req.params.id
-    const adminUser = await adminProfile.findOne({ employeeId: adminUserId})
-    if(adminUser){
-        adminUser.firstName = req.body.firstName,
-        adminUser.lastName = req.body.lastName,
-        adminUser.phone = req.body.phone
+const updateEmployee = async (req, res) => {
+    const employeeUserId = req.params.id
+    const employee = await employeeUser.findOne({ employeeId: employeeUserId})
+    if(employee){
+        employee.firstName = req.body.firstName,
+        employee.lastName = req.body.lastName,
+        employee.phone = req.body.phone
 
-        await adminUser.save()
+        await employee.save()
         return res.status(201).json({ message: "User Profile has been successfully updated" })
     }
     return res.status(400).json({ message: "No user with that employee ID was found" })
 }
 
 
-// Delete employee user (when employee leaves the company)
-const deleteEmployee = async (req, res) => {
-    const user = req.user
-    if(user){
-        const adminUser = await adminProfile.findById(user._id)
-        if(adminUser){
-            employeeProfile.deleteOne({ employeeId: req.body.employeeId })
-            .then(() => {
-                return res.status(201).json({ message: "Employee has successfully been deleted from OneTower database" })
-            })
-            .catch((e) => {
-                return res.status(400).send(e)
-            })
-        }
-    }
-}
-
-
 module.exports = {
-    registerAdminUser,
-    loginAdminUser,
-    updateAdminUser,
-    adminForgotPassword,
-    deleteEmployee
+    registerEmployee,
+    loginEmployee,
+    updateEmployee,
+    employeeForgotPassword
 }
