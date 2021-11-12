@@ -20,5 +20,3 @@ const port = 7777 || process.env.PORT
 app.listen(port, () => {
     console.log(`My passion project is listening on port ${port}`)
 })
-
-//https://medium.com/@gftf2011/this-tutorial-will-dive-in-the-node-js-b4c1d6f94fab
