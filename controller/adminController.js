@@ -12,8 +12,8 @@ const loginSchema = Joi.object({
 
 // Registration Validation Schema
 const registerSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
     phone: Joi.string().required()
@@ -39,7 +39,8 @@ const registerAdminUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10)
     const hashPassword = await bcrypt.hash(req.body.password, salt)
     await adminProfile.create({
-        name: req.body.name,
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
         email: req.body.email,
         password: hashPassword,
         phone: req.body.phone,
@@ -51,7 +52,7 @@ const registerAdminUser = async (req, res) => {
 }
 
 // Login Admin user
-const loginAdminUser = async () => {
+const loginAdminUser = async (req, res) => {
     const { error } = loginSchema.validate(req.body)
     if(error){
         return res.status(400).send(error.details[0].message)

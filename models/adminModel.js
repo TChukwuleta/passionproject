@@ -2,7 +2,11 @@ const mongoose = require('mongoose')
 const schema = mongoose.Schema
 
 const adminSchema = new schema({
-    name: {
+    firstname: {
+        type: String,
+        required: true
+    },
+    firstname: {
         type: String,
         required: true
     },
@@ -10,7 +14,7 @@ const adminSchema = new schema({
         type: String,
         required: true
     },
-    passwoord: {
+    password: {
         type: String,
         required: true
     },

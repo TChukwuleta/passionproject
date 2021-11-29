@@ -12,8 +12,8 @@ const loginSchema = Joi.object({
 
 // Registration Validation Schema
 const registerSchema = Joi.object({
-    firstName: Joi.string().required(),
-    lastName: Joi.string().required(),
+    firstname: Joi.string().required(),
+    lastname: Joi.string().required(),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
     phone: Joi.string().required()
@@ -28,28 +28,36 @@ const createToken = async (payload) => {
 
 // Create employee user
 const registerEmployee = async (req, res) => {
-    const { error } = registerSchema.validate(req.body)
-    if(error){
-        return res.status(400).send(error.details[0].message)
-    }
-    const employeeExist = await employeeProfile.findOne({email: req.body.email})
-    if(employeeExist){
-        return res.status(400).json({ message: "A user with that Email already exists" })
-    }
-    const salt = await bcrypt.genSalt(10)
-    const hashPassword = await bcrypt.hash(req.body.password, salt)
-    const newEmployee = await employeeProfile.create({
-        name: req.body.name,
-        email: req.body.email,
-        password: hashPassword,
-        phone: req.body.phone,
-        employeeId: Math.floor(Math.random() * 10000), // Auto Generates employee ID
-    })
+    const user = req.user
+    if(user){
+        const admin = await adminProfile.findById(user._id)
+        if(admin){
+            const { error } = registerSchema.validate(req.body)
+            if(error){
+                return res.status(400).send(error.details[0].message)
+            }
+            const employeeExist = await employeeProfile.findOne({email: req.body.email})
+            if(employeeExist){
+                return res.status(400).json({ message: "A user with that Email already exists" })
+            }
+            const salt = await bcrypt.genSalt(10)
+            const hashPassword = await bcrypt.hash(req.body.password, salt)
+            const newEmployee = await employeeProfile.create({
+                firstname: req.body.firstname,
+                lastname: req.body.lastname,
+                email: req.body.email,
+                password: hashPassword,
+                phone: req.body.phone,
+                employeeId: Math.floor(Math.random() * 10000), // Auto Generates employee ID
+            })
 
-    adminProfile.employees.push(newEmployee)
-    await adminProfile.save()
+            adminProfile.employees.push(newEmployee)
+            await adminProfile.save()
 
-    return res.status(201).json({ message: "Employee account created successfully" })
+            return res.status(201).json({ message: "Employee account created successfully" })
+        }
+        return res.status(400).json({ message: "Only Admins can create employee on the database"})
+    }
 }
 
 // Login for employee
@@ -94,7 +102,7 @@ const employeeForgotPassword = async (req, res) => {
 // Update admin user
 const updateEmployee = async (req, res) => {
     const employeeUserId = req.params.id
-    const employee = await employeeUser.findOne({ employeeId: employeeUserId})
+    const employee = await employeeProfile.findOne({ employeeId: employeeUserId})
     if(employee){
         employee.firstName = req.body.firstName,
         employee.lastName = req.body.lastName,
